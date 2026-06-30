@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Living from Love — Q3 2026</title>
+<link rel="apple-touch-icon" href="data:image/png;base64,">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f0e0c">
+<style>
+  body { margin: 0; background: #0f0e0c; -webkit-tap-highlight-color: transparent; }
+  * { box-sizing: border-box; -webkit-user-select: none; user-select: none; }
+  textarea, input { -webkit-user-select: text; user-select: text; }
+</style>
+
+<!-- React -->
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<!-- Firebase -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyANQ22f4tmgcoYR1nxNIWiyDMwzaQ6s7DQ",
+    authDomain: "quarterly-goals-55686.firebaseapp.com",
+    projectId: "quarterly-goals-55686",
+    storageBucket: "quarterly-goals-55686.firebasestorage.app",
+    messagingSenderId: "948757976096",
+    appId: "1:948757976096:web:d7b23ec2f0d08e99d59845"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const provider = new GoogleAuthProvider();
+
+  window.__firebase = {
+    auth, db, provider,
+    signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut,
+    doc, getDoc, setDoc, onSnapshot
+  };
+  window.__firebaseReady = true;
+  window.dispatchEvent(new Event("firebase-ready"));
+</script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef } = React;
+
+const QUARTER = "Q3 2026 · Jul – Sep";
+const TOTAL_WEEKS = 13;
+
+const P = {
+  bg: "#0f0e0c", surface: "#1a1814", surfaceAlt: "#211f1b", border: "#2e2b25",
+  gold: "#c9a84c", cream: "#f0ead8", muted: "#8a8070",
+  sage: "#7a9e87", blush: "#c47b6a", sky: "#6a8fa8",
+  lavender: "#9b8ec4", tan: "#b8a05a",
+  thriving: "#7a9e87", steady: "#c9a84c", needslove: "#c47b6a",
+};
+
+const PULSE_OPTIONS = [
+  { id: "thriving",   label: "Thriving",    color: P.thriving,  symbol: "●", desc: "I showed up for this and it felt good." },
+  { id: "steady",     label: "Steady",      color: P.steady,    symbol: "◐", desc: "I did something here, even if small." },
+  { id: "needslove",  label: "Needs love",  color: P.needslove, symbol: "○", desc: "This area didn't get much from me this week." },
+];
+
+const AREAS = [
+  {
+    id: "spirit", emoji: "✦", color: P.gold, title: "Spirit",
+    mantra: "I have grown my connection to my heart and to the present moment.",
+    weeklyQuestion: "Did you feel present this week? Did you act from wholeness? Did you take your days off?",
+    statements: [
+      "I have grown my connection to my heart and to the present moment.",
+      "I more clearly know myself, all events, and all people as God.",
+      "I more fully act from wholeness rather than lack.",
+      "I remember to enjoy each moment of the day fully.",
+      "I inspire happiness in others through example and sharing knowledge.",
+      "I am not always working on myself, as I am not a problem to be fixed.",
+    ],
+    intentions: [
+      "Weekly: 2 full days off all work to focus on spirit, music, and leisure",
+      "Go to 2 new queer or mindfulness in-person or online community events per month",
+      "Practice chakra breathing",
+      "Use mantras during walks",
+      "Do a 3-day nature retreat",
+    ],
+    milestones: [
+      { label: "Community events attended (queer / mindfulness)", type: "count", target: 6 },
+      { label: "3-day nature retreat completed", type: "once" },
+    ],
+  },
+  {
+    id: "health", emoji: "◈", color: P.sage, title: "Health",
+    mantra: "I increase my happiness, peace, energy, and mental clarity.",
+    weeklyQuestion: "How did your body and mind feel this week? Did you eat well, rest, and reduce what drains you?",
+    statements: [
+      "I increase my happiness, peace, energy, and mental clarity.",
+      "I follow a low inflammation, high protein diet, 90%+ of the time.",
+      "I have established the habit of healthy meal prep.",
+      "I have reduced my screen time to a significant degree.",
+      "I've reduced or eliminated medications and supplements that create brain fog.",
+      "I've reduced caffeine to 1 dose or less daily (more allowed on days w/ poor sleep).",
+    ],
+    intentions: [
+      "Follow a low inflammation, high protein diet 90%+ of the time",
+      "Establish the habit of healthy meal prep",
+      "Reduce screen time significantly",
+      "Explore weekly water fasting if it feels good",
+      "Reduce/eliminate medications and supplements that create brain fog",
+      "Reduce caffeine to 1 dose or less daily (more allowed on days w/ poor sleep)",
+    ],
+    milestones: [],
+  },
+  {
+    id: "fitness", emoji: "◉", color: P.blush, title: "Fitness",
+    mantra: "I have become visibly more muscular and lean.",
+    weeklyQuestion: "Did you train this week? Did you move your body with care and consistency?",
+    statements: [
+      "I have become visibly more muscular and lean.",
+    ],
+    intentions: [
+      "Weigh myself daily",
+      "Lift weights 5–7 times a week",
+      "Do cardio 2–3 times a week",
+      "Walk a significant amount each week",
+    ],
+    milestones: [],
+  },
+  {
+    id: "music", emoji: "♪", color: P.sky, title: "Music & Expression",
+    mantra: "I love how music makes me feel fully alive and free.",
+    weeklyQuestion: "Did you practice this week? Did you create for joy, not just improvement?",
+    statements: [],
+    intentions: [
+      "Spend 10 hours minimum per week creating and growing my skills",
+      "Morning free write music 4× a week — record it!",
+      "Write and record 3 original songs",
+      "Cover 3 songs",
+      "Do one open mic performance solo",
+      "Do one performance with a band",
+      "Start singing, guitar, and songwriting lessons — perhaps also drums + production with Csaba",
+    ],
+    milestones: [
+      { label: "Original songs written + recorded", type: "count", target: 3 },
+      { label: "Covers learned", type: "count", target: 3 },
+      { label: "Morning free writes this quarter", type: "count", target: 52 },
+      { label: "Solo open mic done", type: "once" },
+      { label: "Band performance done", type: "once" },
+      { label: "Lessons started (singing, guitar, songwriting)", type: "once" },
+    ],
+  },
+  {
+    id: "sport", emoji: "◎", color: "#e0a86a", title: "Play & Sport",
+    mantra: "I love discovering my body in new ways — playful, curious, free.",
+    weeklyQuestion: "Did you play? Try something new? Move your body just for fun?",
+    statements: [],
+    intentions: [
+      "Pick up at least one new sport: beach volleyball, surfing, or rollerskating",
+    ],
+    milestones: [
+      { label: "New sport begun", type: "once" },
+    ],
+  },
+  {
+    id: "career", emoji: "⬡", color: P.lavender, title: "Career & Business",
+    mantra: "I love building things that genuinely help queer people feel well.",
+    weeklyQuestion: "Did you create from love this week? What moved forward in your work?",
+    statements: [],
+    intentions: [],
+    milestoneGroups: [
+      {
+        group: "Queer Mindfulness", color: P.lavender,
+        items: [
+          { label: "Website reworked", type: "once" },
+          { label: "Regular IG content established (posts + stories)", type: "once" },
+          { label: "Online sessions grow to 15–20 weekly participants", type: "once" },
+          { label: "Retreat interest created + first retreat modestly planned", type: "once" },
+          { label: "WhatsApp community created", type: "once" },
+          { label: "Advertising on Meetup or other growth platforms", type: "once" },
+          { label: "Newsletters published (1 every 2 weeks, written daily in small bits)", type: "count", target: 6 },
+        ],
+      },
+      {
+        group: "Queer Wellness LX", color: P.blush,
+        items: [
+          { label: "IG filled with 12+ posts", type: "count", target: 12 },
+          { label: "Daily stories established", type: "once" },
+          { label: "Regular events led", type: "count", target: 4 },
+          { label: "WhatsApp community created", type: "once" },
+          { label: "Advertising on Meetup or other growth platforms", type: "once" },
+        ],
+      },
+      {
+        group: "Massage Business", color: P.sage,
+        items: [
+          { label: "Website significantly improved", type: "once" },
+          { label: "IG significantly improved", type: "once" },
+          { label: "Content sessions filmed", type: "count", target: 3 },
+          { label: "NFC review plaques placed in massage room", type: "once" },
+          { label: "Client reviews collected (in person + follow-up text)", type: "count", target: 10 },
+          { label: "New techniques + flows practiced weekly", type: "once" },
+          { label: "Deepened anatomy + conditions knowledge", type: "once" },
+        ],
+      },
+      {
+        group: "Bonus: Queer Camino", color: P.tan,
+        items: [
+          { label: "IG page created", type: "once" },
+          { label: "Website created", type: "once" },
+          { label: "Spring 2027 hike scheduled", type: "once" },
+        ],
+      },
+      {
+        group: "Education", color: P.muted,
+        items: [
+          { label: "Books read + AI drilled", type: "count", target: 3 },
+        ],
+      },
+    ],
+    milestones: [],
+  },
+  {
+    id: "language", emoji: "◌", color: P.tan, title: "Portuguese",
+    mantra: "I love feeling at home in Lisbon, in the language of my life here.",
+    weeklyQuestion: "Did you practice Portuguese this week? Did you use it in the real world?",
+    statements: [],
+    intentions: [
+      "Practice 5 hours a week",
+      "Each week enjoy some PT media (music, film, podcast, videos, etc.)",
+      "Try your best to only use PT in establishments",
+      "Have 1 conversation in PT with someone each week",
+      "Deep drive now so I'm ready for 3 months in Brazil this winter",
+    ],
+    milestones: [
+      { label: "Real-world PT conversations", type: "count", target: 13 },
+      { label: "PT media sessions", type: "count", target: 13 },
+    ],
+  },
+  {
+    id: "finances", emoji: "◇", color: P.muted, title: "Financial Health",
+    mantra: "I love the peace of knowing I'm building safety for myself and my family.",
+    weeklyQuestion: "Are you on track with savings this month? Any logistics to move forward on?",
+    statements: [],
+    intentions: [
+      "Save €300 each month (rainy day, helping Mom, hair transplant)",
+      "Rent from tenants covers all couple's basic living expenses + round-trip flights to Brazil",
+      "Secure round-trip flights to Brazil for winter",
+      "Rent an apartment in Brazil for winter — use savings for food and travel",
+    ],
+    milestones: [
+      { label: "Months hitting €300 savings", type: "count", target: 3 },
+      { label: "Brazil flights booked", type: "once" },
+      { label: "Brazil apartment secured", type: "once" },
+    ],
+  },
+  {
+    id: "family", emoji: "♥", color: "#c98a6a", title: "Family",
+    mantra: "I love supporting the people I love, from a place of abundance, not obligation.",
+    weeklyQuestion: "Did anything move forward with family this week? Did you make space for true leisure?",
+    statements: [],
+    intentions: [
+      "Help Mom immigrate to Portugal",
+      "Make sure I have pockets of true leisure each day — no need to rush from one thing to the next",
+    ],
+    milestones: [
+      { label: "Mom's immigration process moving forward", type: "once" },
+    ],
+  },
+  {
+    id: "relationship", emoji: "❦", color: "#b06b8a", title: "Relationship",
+    mantra: "My relationship with and commitment to myself comes first.",
+    weeklyQuestion: "Did you give Manu space to live his own way? Did you protect your own peace this week?",
+    statements: [
+      "I give Manu the freedom to live his life the way he wants and to solve his own problems.",
+      "I make my relationship with and commitment to myself my priority.",
+      "I don't need to sacrifice my peace, health, or happiness for others.",
+    ],
+    intentions: [],
+    milestones: [],
+  },
+  {
+    id: "tasks", emoji: "✱", color: "#a0a890", title: "Important Tasks",
+    mantra: "Taking care of these is an act of self-love.",
+    weeklyQuestion: "Did any of these move forward this week?",
+    statements: [],
+    intentions: [],
+    milestones: [
+      { label: "EU passport application submitted", type: "once" },
+      { label: "HPV vaccine plan made + started", type: "once" },
+      { label: "Migrated to health insurance covering mental health", type: "once" },
+      { label: "Moles checked and biopsied", type: "once" },
+    ],
+  },
+];
+
+const REFLECTION_PROMPTS = [
+  "What felt like love this week — not effort, but genuine care for yourself?",
+  "Where did you act from wholeness, rather than from lack?",
+  "What practice felt like medicine this week?",
+  "What are you proud of that no one else might notice?",
+  "Where did you rest without guilt?",
+  "What surprised you about yourself?",
+  "What do you want to carry into next week?",
+  "Where did you feel most like yourself?",
+  "What did you do simply because you love it?",
+];
+
+// ── FIRESTORE SYNC HOOK ──
+function useCloudState(uid) {
+  const [state, setStateRaw] = useState({});
+  const [loaded, setLoaded] = useState(false);
+  const saveTimer = useRef(null);
+
+  useEffect(() => {
+    if (!uid || !window.__firebase) return;
+    const { db, doc, onSnapshot } = window.__firebase;
+    const ref = doc(db, "users", uid, "dashboard", "state");
+    const unsub = onSnapshot(ref, (snap) => {
+      if (snap.exists()) {
+        setStateRaw(snap.data().data || {});
+      }
+      setLoaded(true);
+    }, (err) => {
+      console.error("Firestore sync error:", err);
+      setLoaded(true);
+    });
+    return () => unsub();
+  }, [uid]);
+
+  const setState = (updater) => {
+    setStateRaw(prev => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      // debounce save
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      saveTimer.current = setTimeout(() => {
+        if (uid && window.__firebase) {
+          const { db, doc, setDoc } = window.__firebase;
+          const ref = doc(db, "users", uid, "dashboard", "state");
+          setDoc(ref, { data: next, updatedAt: Date.now() }).catch(e => console.error("Save error:", e));
+        }
+      }, 400);
+      return next;
+    });
+  };
+
+  return [state, setState, loaded];
+}
+
+function ProgressBar({ done, total, color }) {
+  const pct = Math.min(100, Math.round((done / total) * 100));
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <div style={{ flex: 1, height: 3, borderRadius: 2, background: P.border, overflow: "hidden" }}>
+        <div style={{ width: pct + "%", height: "100%", background: color, borderRadius: 2, transition: "width 0.4s ease" }} />
+      </div>
+      <span style={{ fontSize: 11, color: P.muted, minWidth: 34, fontFamily: "system-ui, sans-serif" }}>{done}/{total}</span>
+    </div>
+  );
+}
+
+function CheckRow({ label, done, color, onToggle }) {
+  return (
+    <div onClick={onToggle} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 7, cursor: "pointer", marginBottom: 4, background: done ? color + "14" : P.surfaceAlt, border: "1px solid " + (done ? color + "40" : P.border), transition: "all 0.2s" }}>
+      <div style={{ width: 16, height: 16, borderRadius: 3, border: "1.5px solid " + (done ? color : P.muted), background: done ? color : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+        {done && <span style={{ fontSize: 9, color: P.bg }}>✓</span>}
+      </div>
+      <span style={{ fontSize: 12, color: done ? color : P.cream, textDecoration: done ? "line-through" : "none", opacity: done ? 0.7 : 1 }}>{label}</span>
+    </div>
+  );
+}
+
+function CountRow({ label, val, target, color, onDec, onInc }) {
+  return (
+    <div style={{ marginBottom: 10, padding: "8px 10px", background: P.surfaceAlt, borderRadius: 7, border: "1px solid " + P.border }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
+        <span style={{ fontSize: 12, color: P.cream }}>{label}</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <button onClick={onDec} style={{ width: 22, height: 22, borderRadius: 4, border: "1px solid " + P.border, background: P.bg, color: P.muted, cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", padding: 0, fontFamily: "system-ui, sans-serif" }}>−</button>
+          <button onClick={onInc} style={{ width: 22, height: 22, borderRadius: 4, border: "1px solid " + color + "60", background: color + "18", color: color, cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", padding: 0, fontFamily: "system-ui, sans-serif" }}>+</button>
+        </div>
+      </div>
+      <ProgressBar done={val} total={target} color={color} />
+    </div>
+  );
+}
+
+function AreaCard({ area, state, setState }) {
+  const [open, setOpen] = useState(false);
+  const toggle = key => setState(prev => ({ ...prev, [key]: !prev[key] }));
+  const setCount = (key, val) => setState(prev => ({ ...prev, [key]: val }));
+
+  const onceMilestones = (area.milestones || []).filter(m => m.type === "once");
+  const countMilestones = (area.milestones || []).filter(m => m.type === "count");
+
+  return (
+    <div style={{ background: P.surface, border: "1px solid " + P.border, borderRadius: 12, overflow: "hidden" }}>
+      <div onClick={() => setOpen(!open)} style={{ padding: "15px 18px", cursor: "pointer", display: "flex", alignItems: "flex-start", gap: 12 }}>
+        <span style={{ fontSize: 16, color: area.color, marginTop: 3, minWidth: 18 }}>{area.emoji}</span>
+        <div style={{ flex: 1 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
+            <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: P.cream }}>{area.title}</h3>
+            <span style={{ fontSize: 10, color: P.muted }}>{open ? "▲" : "▼"}</span>
+          </div>
+          <p style={{ margin: 0, fontSize: 12, color: area.color, fontStyle: "italic", lineHeight: 1.4 }}>{area.mantra}</p>
+        </div>
+      </div>
+
+      {open && (
+        <div style={{ padding: "0 18px 18px", borderTop: "1px solid " + P.border }}>
+          {area.statements && area.statements.length > 0 && (
+            <React.Fragment>
+              <p style={{ fontSize: 10, color: area.color, letterSpacing: "0.1em", textTransform: "uppercase", margin: "14px 0 8px", fontFamily: "system-ui, sans-serif" }}>I am becoming...</p>
+              {area.statements.map((s, i) => (
+                <p key={i} style={{ margin: "0 0 6px", fontSize: 13, color: "#d0c8b8", lineHeight: 1.65, fontStyle: "italic", paddingLeft: 12, borderLeft: "2px solid " + area.color + "40" }}>{s}</p>
+              ))}
+            </React.Fragment>
+          )}
+
+          {area.intentions && area.intentions.length > 0 && (
+            <React.Fragment>
+              <p style={{ fontSize: 10, color: P.muted, letterSpacing: "0.1em", textTransform: "uppercase", margin: "16px 0 8px", fontFamily: "system-ui, sans-serif" }}>Commitments</p>
+              {area.intentions.map((intent, i) => (
+                <div key={i} style={{ display: "flex", gap: 8, marginBottom: 5 }}>
+                  <span style={{ color: area.color, opacity: 0.6, fontSize: 11, marginTop: 3, flexShrink: 0 }}>–</span>
+                  <span style={{ fontSize: 12, color: "#b8b0a0", lineHeight: 1.55 }}>{intent}</span>
+                </div>
+              ))}
+            </React.Fragment>
+          )}
+
+          {area.milestoneGroups && area.milestoneGroups.map(group => (
+            <div key={group.group} style={{ marginTop: 20 }}>
+              <p style={{ fontSize: 11, color: group.color, letterSpacing: "0.05em", margin: "0 0 8px", fontFamily: "system-ui, sans-serif", fontWeight: 600 }}>{group.group}</p>
+              {group.items.map(m => {
+                if (m.type === "once") {
+                  const key = area.id + "_once_" + group.group + "_" + m.label;
+                  return <CheckRow key={m.label} label={m.label} done={!!state[key]} color={group.color} onToggle={() => toggle(key)} />;
+                } else {
+                  const key = area.id + "_c_" + group.group + "_" + m.label;
+                  const val = state[key] || 0;
+                  return <CountRow key={m.label} label={m.label} val={val} target={m.target} color={group.color} onDec={() => setCount(key, Math.max(0, val - 1))} onInc={() => setCount(key, Math.min(m.target, val + 1))} />;
+                }
+              })}
+            </div>
+          ))}
+
+          {countMilestones.length > 0 && (
+            <React.Fragment>
+              <p style={{ fontSize: 10, color: P.muted, letterSpacing: "0.1em", textTransform: "uppercase", margin: "18px 0 10px", fontFamily: "system-ui, sans-serif" }}>Progress</p>
+              {countMilestones.map(m => {
+                const key = area.id + "_c_" + m.label;
+                const val = state[key] || 0;
+                return <CountRow key={m.label} label={m.label} val={val} target={m.target} color={area.color} onDec={() => setCount(key, Math.max(0, val - 1))} onInc={() => setCount(key, Math.min(m.target, val + 1))} />;
+              })}
+            </React.Fragment>
+          )}
+
+          {onceMilestones.length > 0 && (
+            <React.Fragment>
+              <p style={{ fontSize: 10, color: P.muted, letterSpacing: "0.1em", textTransform: "uppercase", margin: "14px 0 8px", fontFamily: "system-ui, sans-serif" }}>Quarter Milestones</p>
+              {onceMilestones.map(m => {
+                const key = area.id + "_once_" + m.label;
+                return <CheckRow key={m.label} label={m.label} done={!!state[key]} color={area.color} onToggle={() => toggle(key)} />;
+              })}
+            </React.Fragment>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function WeeklyCheckIn({ week, state, setState }) {
+  const [step, setStep] = useState(0);
+  const totalSteps = AREAS.length + 1;
+
+  const setPulse = (areaId, val) => {
+    const key = "pulse_w" + week + "_" + areaId;
+    setState(prev => ({ ...prev, [key]: val }));
+    setTimeout(() => setStep(s => s + 1), 300);
+  };
+
+  if (step >= totalSteps) return (
+    <div style={{ textAlign: "center", padding: "44px 20px" }}>
+      <div style={{ fontSize: 30, marginBottom: 12, color: P.gold }}>✦</div>
+      <h3 style={{ fontSize: 18, fontWeight: 400, color: P.cream, margin: "0 0 8px" }}>Week {week} complete.</h3>
+      <p style={{ fontSize: 13, color: P.muted, fontStyle: "italic", margin: "0 0 24px" }}>You showed up. See you next week.</p>
+      <button onClick={() => setStep(0)} style={{ background: "none", border: "1px solid " + P.border, color: P.muted, borderRadius: 8, padding: "8px 18px", cursor: "pointer", fontSize: 12, fontFamily: "system-ui, sans-serif" }}>Edit this week ↻</button>
+    </div>
+  );
+
+  if (step === AREAS.length) {
+    const noteKey = "note_w" + week;
+    const promptIdx = (week - 1) % REFLECTION_PROMPTS.length;
+    return (
+      <div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+          <span style={{ fontSize: 11, color: P.muted, fontFamily: "system-ui, sans-serif", whiteSpace: "nowrap" }}>Step {step + 1} of {totalSteps}</span>
+          <div style={{ height: 3, flex: 1, borderRadius: 2, background: P.border, overflow: "hidden" }}>
+            <div style={{ width: "100%", height: "100%", background: P.gold }} />
+          </div>
+        </div>
+        <p style={{ fontSize: 11, color: P.gold, textTransform: "uppercase", letterSpacing: "0.1em", margin: "0 0 10px", fontFamily: "system-ui, sans-serif" }}>One moment of reflection</p>
+        <p style={{ fontSize: 16, color: P.cream, lineHeight: 1.6, margin: "0 0 14px" }}>{REFLECTION_PROMPTS[promptIdx]}</p>
+        <textarea value={state[noteKey] || ""} onChange={e => setState(prev => ({ ...prev, [noteKey]: e.target.value }))}
+          placeholder="Write here — or just sit with the question. Both count."
+          style={{ width: "100%", minHeight: 130, background: P.surfaceAlt, border: "1px solid " + P.border, borderRadius: 8, padding: 14, color: P.cream, fontSize: 13, fontFamily: "Georgia, serif", lineHeight: 1.7, resize: "vertical", outline: "none", boxSizing: "border-box", marginBottom: 14 }} />
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={() => setStep(s => s - 1)} style={{ background: "none", border: "1px solid " + P.border, color: P.muted, borderRadius: 7, padding: "7px 12px", cursor: "pointer", fontSize: 11, fontFamily: "system-ui, sans-serif" }}>← Back</button>
+          <button onClick={() => setStep(s => s + 1)} style={{ background: P.gold, border: "none", color: P.bg, borderRadius: 7, padding: "7px 18px", cursor: "pointer", fontSize: 12, fontFamily: "system-ui, sans-serif", fontWeight: 600, flex: 1 }}>Done for this week →</button>
+        </div>
+      </div>
+    );
+  }
+
+  const area = AREAS[step];
+  const pulseKey = "pulse_w" + week + "_" + area.id;
+  const currentPulse = state[pulseKey];
+
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 22 }}>
+        <span style={{ fontSize: 11, color: P.muted, fontFamily: "system-ui, sans-serif", whiteSpace: "nowrap" }}>Step {step + 1} of {totalSteps}</span>
+        <div style={{ height: 3, flex: 1, borderRadius: 2, background: P.border, overflow: "hidden" }}>
+          <div style={{ width: ((step + 1) / totalSteps) * 100 + "%", height: "100%", background: area.color, transition: "width 0.3s" }} />
+        </div>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+        <span style={{ fontSize: 22, color: area.color }}>{area.emoji}</span>
+        <h3 style={{ margin: 0, fontSize: 17, fontWeight: 400, color: P.cream }}>{area.title}</h3>
+      </div>
+      <p style={{ fontSize: 13, color: area.color, fontStyle: "italic", margin: "0 0 8px" }}>{area.mantra}</p>
+      <p style={{ fontSize: 13, color: "#b0a898", lineHeight: 1.6, margin: "0 0 20px" }}>{area.weeklyQuestion}</p>
+      <p style={{ fontSize: 10, color: P.muted, textTransform: "uppercase", letterSpacing: "0.1em", margin: "0 0 10px", fontFamily: "system-ui, sans-serif" }}>How did this area feel this week?</p>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 18 }}>
+        {PULSE_OPTIONS.map(opt => {
+          const selected = currentPulse === opt.id;
+          return (
+            <div key={opt.id} onClick={() => setPulse(area.id, opt.id)}
+              style={{ display: "flex", alignItems: "center", gap: 14, padding: "13px 16px", borderRadius: 10, cursor: "pointer", background: selected ? opt.color + "22" : P.surfaceAlt, border: "1.5px solid " + (selected ? opt.color : P.border), transition: "all 0.15s" }}>
+              <span style={{ fontSize: 20, color: opt.color }}>{opt.symbol}</span>
+              <div>
+                <div style={{ fontSize: 14, color: selected ? opt.color : P.cream, fontWeight: selected ? 600 : 400 }}>{opt.label}</div>
+                <div style={{ fontSize: 12, color: P.muted, fontStyle: "italic" }}>{opt.desc}</div>
+              </div>
+              {selected && <span style={{ marginLeft: "auto", fontSize: 14, color: opt.color }}>✓</span>}
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ display: "flex", gap: 8 }}>
+        {step > 0 && <button onClick={() => setStep(s => s - 1)} style={{ background: "none", border: "1px solid " + P.border, color: P.muted, borderRadius: 7, padding: "8px 14px", cursor: "pointer", fontSize: 12, fontFamily: "system-ui, sans-serif" }}>← Back</button>}
+        <button onClick={() => setStep(s => s + 1)} style={{ flex: 1, background: currentPulse ? area.color : P.surfaceAlt, border: "1px solid " + (currentPulse ? area.color : P.border), color: currentPulse ? P.bg : P.muted, borderRadius: 7, padding: "8px 14px", cursor: "pointer", fontSize: 12, fontFamily: "system-ui, sans-serif", fontWeight: 600, transition: "all 0.2s" }}>
+          {currentPulse ? "Next →" : "Skip →"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function QuarterOverview({ state }) {
+  return (
+    <div>
+      <h2 style={{ fontSize: 18, fontWeight: 400, margin: "0 0 12px", color: P.cream }}>Quarter at a Glance</h2>
+      <p style={{ fontSize: 12, color: P.muted, fontStyle: "italic", margin: "0 0 16px", fontFamily: "system-ui, sans-serif" }}>Your weekly pulse for each area, across all 13 weeks. Fills in as you do your check-ins.</p>
+      <div style={{ display: "flex", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
+        {[...PULSE_OPTIONS, { id: "none", label: "Not yet", color: P.border, symbol: "·" }].map(opt => (
+          <div key={opt.id} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+            <span style={{ fontSize: 13, color: opt.color }}>{opt.symbol}</span>
+            <span style={{ fontSize: 11, color: P.muted, fontFamily: "system-ui, sans-serif" }}>{opt.label}</span>
+          </div>
+        ))}
+      </div>
+      <div style={{ background: P.surface, border: "1px solid " + P.border, borderRadius: 10, overflow: "hidden" }}>
+        <div style={{ display: "flex", borderBottom: "1px solid " + P.border, padding: "7px 12px" }}>
+          <div style={{ width: 90, fontSize: 9, color: P.muted, fontFamily: "system-ui, sans-serif" }}>Area</div>
+          <div style={{ display: "flex", flex: 1 }}>
+            {Array.from({ length: TOTAL_WEEKS }, (_, i) => (
+              <div key={i} style={{ flex: 1, textAlign: "center", fontSize: 9, color: P.muted, fontFamily: "system-ui, sans-serif" }}>{i + 1}</div>
+            ))}
+          </div>
+        </div>
+        {AREAS.map((area, ai) => (
+          <div key={area.id} style={{ display: "flex", alignItems: "center", padding: "6px 12px", borderBottom: ai < AREAS.length - 1 ? "1px solid " + P.border : "none" }}>
+            <div style={{ width: 90, display: "flex", alignItems: "center", gap: 5 }}>
+              <span style={{ fontSize: 11, color: area.color }}>{area.emoji}</span>
+              <span style={{ fontSize: 9, color: P.muted, fontFamily: "system-ui, sans-serif" }}>{area.title.split(" ")[0]}</span>
+            </div>
+            <div style={{ display: "flex", flex: 1 }}>
+              {Array.from({ length: TOTAL_WEEKS }, (_, wi) => {
+                const val = state["pulse_w" + (wi + 1) + "_" + area.id];
+                const pulse = val ? PULSE_OPTIONS.find(p => p.id === val) : null;
+                return (
+                  <div key={wi} style={{ flex: 1, display: "flex", justifyContent: "center", alignItems: "center" }}>
+                    <span style={{ fontSize: 11, color: pulse ? pulse.color : P.border }}>{pulse ? pulse.symbol : "·"}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── SIGN IN SCREEN ──
+function SignIn() {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  const handleSignIn = async () => {
+    setBusy(true); setErr("");
+    try {
+      const { auth, provider, signInWithPopup, signInWithRedirect } = window.__firebase;
+      try {
+        await signInWithPopup(auth, provider);
+      } catch (popupErr) {
+        // fallback to redirect (popups often blocked on iOS Safari / home-screen apps)
+        await signInWithRedirect(auth, provider);
+      }
+    } catch (e) {
+      console.error(e);
+      setErr("Sign-in failed. Try again.");
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", background: P.bg, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", padding: 24, fontFamily: "Georgia, serif" }}>
+      <div style={{ fontSize: 34, color: P.gold, marginBottom: 16 }}>✦</div>
+      <h1 style={{ fontSize: 24, fontWeight: 400, color: P.cream, margin: "0 0 8px", textAlign: "center" }}>Living from Love</h1>
+      <p style={{ fontSize: 13, color: P.muted, fontStyle: "italic", margin: "0 0 32px", textAlign: "center" }}>{QUARTER}</p>
+      <button onClick={handleSignIn} disabled={busy} style={{ background: P.surface, border: "1px solid " + P.border, color: P.cream, borderRadius: 10, padding: "14px 28px", fontSize: 15, fontFamily: "system-ui, sans-serif", cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }}>
+        <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.81.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.97 10.72A5.4 5.4 0 0 1 3.69 9c0-.6.1-1.18.28-1.72V4.95H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.05l3.01-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58A9 9 0 0 0 .96 4.95L3.97 7.28C4.68 5.16 6.66 3.58 9 3.58z"/></svg>
+        {busy ? "Signing in…" : "Sign in with Google"}
+      </button>
+      {err && <p style={{ color: P.blush, fontSize: 12, marginTop: 12, fontFamily: "system-ui, sans-serif" }}>{err}</p>}
+      <p style={{ fontSize: 11, color: P.muted, marginTop: 28, textAlign: "center", maxWidth: 280, fontFamily: "system-ui, sans-serif", lineHeight: 1.6 }}>Your data is private and synced securely across your devices.</p>
+    </div>
+  );
+}
+
+// ── MAIN APP ──
+function Dashboard({ user }) {
+  const [state, setState, loaded] = useCloudState(user.uid);
+  const [activeTab, setActiveTab] = useState("checkin");
+  const [checkInWeek, setCheckInWeek] = useState(1);
+
+  const TABS = [
+    { id: "checkin", label: "Weekly Check-in" },
+    { id: "goals", label: "My Areas" },
+    { id: "overview", label: "Quarter View" },
+    { id: "anchor", label: "North Star" },
+  ];
+
+  const allMilestones = AREAS.flatMap(a => {
+    const flat = a.milestones || [];
+    const grouped = (a.milestoneGroups || []).flatMap(g => g.items.map(m => ({ ...m, areaId: a.id, groupId: g.group, color: g.color })));
+    return [...flat.map(m => ({ ...m, areaId: a.id })), ...grouped];
+  });
+  const totalOnce = allMilestones.filter(m => m.type === "once").length;
+  const doneOnce = allMilestones.filter(m => {
+    if (m.type !== "once") return false;
+    const key = m.groupId ? (m.areaId + "_once_" + m.groupId + "_" + m.label) : (m.areaId + "_once_" + m.label);
+    return !!state[key];
+  }).length;
+  const countMs = allMilestones.filter(m => m.type === "count");
+  const totalCount = countMs.reduce((s, m) => s + m.target, 0);
+  const doneCount = countMs.reduce((s, m) => {
+    const key = m.groupId ? (m.areaId + "_c_" + m.groupId + "_" + m.label) : (m.areaId + "_c_" + m.label);
+    return s + Math.min(m.target, state[key] || 0);
+  }, 0);
+  const overallPct = Math.round(((doneOnce + doneCount) / (totalOnce + totalCount)) * 100) || 0;
+
+  const handleSignOut = () => {
+    const { auth, signOut } = window.__firebase;
+    signOut(auth);
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", background: P.bg, fontFamily: "Georgia, 'Times New Roman', serif", color: P.cream, paddingBottom: 80 }}>
+      <div style={{ padding: "36px 22px 22px", textAlign: "center", borderBottom: "1px solid " + P.border, position: "relative" }}>
+        <button onClick={handleSignOut} style={{ position: "absolute", top: 16, right: 16, background: "none", border: "1px solid " + P.border, color: P.muted, borderRadius: 6, padding: "5px 10px", fontSize: 10, fontFamily: "system-ui, sans-serif", cursor: "pointer" }}>Sign out</button>
+        <p style={{ fontSize: 10, letterSpacing: "0.18em", color: P.gold, textTransform: "uppercase", margin: "0 0 8px", fontFamily: "system-ui, sans-serif" }}>{QUARTER}</p>
+        <h1 style={{ fontSize: 24, fontWeight: 400, margin: "0 0 6px", color: P.cream }}>Living from Love</h1>
+        <p style={{ fontSize: 13, color: P.muted, margin: "0 0 18px", fontStyle: "italic" }}>Not racing toward a better self — caring for the one already here.</p>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 12, background: P.surface, border: "1px solid " + P.border, borderRadius: 50, padding: "7px 16px" }}>
+          <div style={{ position: "relative", width: 36, height: 36 }}>
+            <svg width="36" height="36" style={{ transform: "rotate(-90deg)" }}>
+              <circle cx="18" cy="18" r="14" fill="none" stroke={P.border} strokeWidth="2.5" />
+              <circle cx="18" cy="18" r="14" fill="none" stroke={P.gold} strokeWidth="2.5"
+                strokeDasharray={2 * Math.PI * 14}
+                strokeDashoffset={2 * Math.PI * 14 * (1 - overallPct / 100)}
+                strokeLinecap="round" style={{ transition: "stroke-dashoffset 0.5s ease" }} />
+            </svg>
+            <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, color: P.gold, fontFamily: "system-ui, sans-serif" }}>{overallPct}%</span>
+          </div>
+          <div>
+            <div style={{ fontSize: 11, color: P.cream, fontFamily: "system-ui, sans-serif" }}>Quarter progress</div>
+            <div style={{ fontSize: 10, color: P.muted, fontFamily: "system-ui, sans-serif" }}>{loaded ? "Synced ✓" : "Syncing…"}</div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: "flex", borderBottom: "1px solid " + P.border, overflowX: "auto" }}>
+        {TABS.map(tab => (
+          <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{ padding: "11px 13px 9px", background: "none", border: "none", cursor: "pointer", fontSize: 11, color: activeTab === tab.id ? P.gold : P.muted, borderBottom: "2px solid " + (activeTab === tab.id ? P.gold : "transparent"), fontFamily: "system-ui, sans-serif", letterSpacing: "0.03em", whiteSpace: "nowrap", transition: "color 0.2s", flexShrink: 0 }}>
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ padding: "20px 18px", maxWidth: 560, margin: "0 auto" }}>
+
+        {activeTab === "checkin" && (
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+              <button onClick={() => setCheckInWeek(w => Math.max(1, w - 1))} style={{ background: P.surfaceAlt, border: "1px solid " + P.border, color: P.cream, borderRadius: 6, padding: "5px 11px", cursor: "pointer", fontFamily: "system-ui, sans-serif", fontSize: 14 }}>‹</button>
+              <span style={{ fontSize: 14, color: P.cream, fontFamily: "system-ui, sans-serif", flex: 1, textAlign: "center" }}>Week {checkInWeek} of {TOTAL_WEEKS}</span>
+              <button onClick={() => setCheckInWeek(w => Math.min(TOTAL_WEEKS, w + 1))} style={{ background: P.surfaceAlt, border: "1px solid " + P.border, color: P.cream, borderRadius: 6, padding: "5px 11px", cursor: "pointer", fontFamily: "system-ui, sans-serif", fontSize: 14 }}>›</button>
+            </div>
+            <WeeklyCheckIn key={checkInWeek} week={checkInWeek} state={state} setState={setState} />
+          </div>
+        )}
+
+        {activeTab === "goals" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <p style={{ fontSize: 12, color: P.muted, margin: "0 0 4px", fontStyle: "italic", fontFamily: "system-ui, sans-serif" }}>Tap any area to expand your intentions and milestones.</p>
+            {AREAS.map(area => <AreaCard key={area.id} area={area} state={state} setState={setState} />)}
+          </div>
+        )}
+
+        {activeTab === "overview" && <QuarterOverview state={state} />}
+
+        {activeTab === "anchor" && (
+          <div>
+            <h2 style={{ fontSize: 18, fontWeight: 400, margin: "0 0 18px", color: P.cream }}>North Star</h2>
+            <div style={{ background: P.surface, border: "1px solid " + P.gold + "40", borderLeft: "3px solid " + P.gold, borderRadius: 8, padding: "18px", marginBottom: 12 }}>
+              <p style={{ fontSize: 10, color: P.gold, textTransform: "uppercase", letterSpacing: "0.1em", margin: "0 0 12px", fontFamily: "system-ui, sans-serif" }}>Declaration</p>
+              {[
+                "I have grown my connection to my heart and to the present moment.",
+                "I more clearly know myself, all events, and all people as God.",
+                "I more fully act from wholeness rather than lack.",
+                "I remember to enjoy each moment of the day fully.",
+                "I inspire happiness in others through example and sharing knowledge.",
+              ].map((line, i) => (
+                <p key={i} style={{ margin: "0 0 8px", fontSize: 14, color: "#d8d0c0", lineHeight: 1.65, fontStyle: "italic" }}>{line}</p>
+              ))}
+            </div>
+            {[
+              { heading: "How to use this", body: "Once a week, open Weekly Check-in. It walks you through each area one at a time with a reflective question — you simply tap how it felt. Then a brief reflection prompt. The whole thing takes under 10 minutes.", color: P.sage },
+              { heading: "The underlying intention", body: "Everything this quarter comes from love. Not urgency. Not self-rejection. You are not broken. These goals are simply how you create the experiences you love — clarity, strength, creativity, connection, presence.", color: P.sky },
+              { heading: "When you fall off", body: "You will miss weeks. That's not failure — that's a quarter. When you notice you've drifted, the only question is: what would someone who loves themselves do right now? Not catch up. Not punish. Just return.", color: P.blush },
+              { heading: "Your data is synced", body: "Everything saves to the cloud automatically and syncs across your iPhone, iPad, and any device you sign into.", color: P.lavender },
+            ].map((block, i) => (
+              <div key={i} style={{ background: P.surface, border: "1px solid " + P.border, borderLeft: "3px solid " + block.color, borderRadius: 8, padding: "16px 18px", marginBottom: 10 }}>
+                <p style={{ fontSize: 10, color: block.color, textTransform: "uppercase", letterSpacing: "0.1em", margin: "0 0 7px", fontFamily: "system-ui, sans-serif" }}>{block.heading}</p>
+                <p style={{ fontSize: 13, color: "#b8b0a0", lineHeight: 1.7, margin: 0 }}>{block.body}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const [user, setUser] = useState(undefined); // undefined = loading, null = signed out
+  const [fbReady, setFbReady] = useState(!!window.__firebaseReady);
+
+  useEffect(() => {
+    if (window.__firebaseReady) { setFbReady(true); return; }
+    const handler = () => setFbReady(true);
+    window.addEventListener("firebase-ready", handler);
+    return () => window.removeEventListener("firebase-ready", handler);
+  }, []);
+
+  useEffect(() => {
+    if (!fbReady) return;
+    const { auth, onAuthStateChanged, getRedirectResult } = window.__firebase;
+    getRedirectResult(auth).catch(e => console.error("Redirect result error:", e));
+    const unsub = onAuthStateChanged(auth, (u) => setUser(u));
+    return () => unsub();
+  }, [fbReady]);
+
+  if (!fbReady || user === undefined) {
+    return (
+      <div style={{ minHeight: "100vh", background: P.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ color: P.gold, fontSize: 24 }}>✦</div>
+      </div>
+    );
+  }
+
+  if (!user) return <SignIn />;
+  return <Dashboard user={user} />;
+}
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App />);
+</script>
+</body>
+</html>
